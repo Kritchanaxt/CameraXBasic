@@ -1,19 +1,3 @@
-/*
- * Copyright 2020 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.android.example.cameraxbasic.utils
 
 import android.os.Build
@@ -46,33 +30,44 @@ fun ImageButton.simulateClick(delay: Long = ANIMATION_FAST_MILLIS) {
     }, delay)
 }
 
-/** Pad this view with the insets provided by the device cutout (i.e. notch) */
+/**
+ * Pad top and bottom of the view to avoid [DisplayCutout]
+ */
 @RequiresApi(Build.VERSION_CODES.P)
 fun View.padWithDisplayCutout() {
 
-    /** Helper method that applies padding from cutout's safe insets */
-    fun doPadding(cutout: DisplayCutout) = setPadding(
+    /** Helper display cutout callback */
+    fun cutoutCallback(cutout: DisplayCutout) {
+        setPadding(
             cutout.safeInsetLeft,
             cutout.safeInsetTop,
             cutout.safeInsetRight,
-            cutout.safeInsetBottom)
+            cutout.safeInsetBottom
+        )
+    }
 
-    // Apply padding using the display cutout designated "safe area"
-    rootWindowInsets?.displayCutout?.let { doPadding(it) }
-
-    // Set a listener for window insets since view.rootWindowInsets may not be ready yet
-    setOnApplyWindowInsetsListener { _, insets ->
-        insets.displayCutout?.let { doPadding(it) }
-        insets
+    // Set padding for DisplayCutout
+    post {
+        display?.let {
+            val cutout = it.cutout
+            if (cutout != null) {
+                cutoutCallback(cutout)
+            }
+        }
     }
 }
 
-/** Same as [AlertDialog.show] but setting immersive mode in the dialog's window */
+/**
+ * Extension function to show an [AlertDialog] in immersive mode (full screen).
+ */
 fun AlertDialog.showImmersive() {
-    // Set the dialog to not focusable
+    // Set the dialog to not focusable. This makes the dialog
+    // non-interactive for a short little while so that we can
+    // make the dialog full screen.
     window?.setFlags(
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
+        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+    )
 
     // Make sure that the dialog's window is in full screen
     window?.let { hideSystemUI(it) }
@@ -84,6 +79,9 @@ fun AlertDialog.showImmersive() {
     window?.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
 }
 
+/**
+ * Helper function to hide system UI.
+ */
 private fun hideSystemUI(window: Window) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
         WindowCompat.setDecorFitsSystemWindows(window, false)
